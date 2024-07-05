@@ -17,6 +17,7 @@
 #
 #########################################################################
 import logging
+import os
 import typing
 import uuid
 from datetime import datetime
@@ -118,6 +119,10 @@ class OgcWmsHarvester(base.BaseHarvesterWorker):
         super().__init__(*args, **kwargs)
         self.http_session = requests.Session()
         self.http_session.headers = {"Content-Type": "application/xml"}
+        if os.getenv("HTTP_PROXY") is not None:
+            http_proxy = os.getenv("HTTP_PROXY")
+            https_proxy = os.getenv("HTTPS_PROXY")
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
         self.dataset_title_filter = dataset_title_filter
 
     @property
@@ -201,7 +206,7 @@ class OgcWmsHarvester(base.BaseHarvesterWorker):
                 params[_param[0]] = _param[1]
 
         get_capabilities_response = self.http_session.get(
-            self.get_ogc_wms_url(wms_url, version=_version), params=params
+            self.get_ogc_wms_url(wms_url, version=_version), params=params, verify=False
         )
         get_capabilities_response.raise_for_status()
         return get_capabilities_response

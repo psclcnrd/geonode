@@ -19,6 +19,8 @@
 """Utilities for enabling OGC WMS remote services in geonode."""
 import json
 import logging
+import os
+
 import requests
 
 from uuid import uuid4
@@ -279,9 +281,14 @@ class GeoNodeServiceHandler(WmsServiceHandler):
         return {"harvest_datasets": True, "harvest_documents": True, "copy_datasets": False, "copy_documents": False}
 
     def ows_endpoint(self):
+        proxies = {}
+        if os.getenv("HTTP_PROXY") is not None:
+            http_proxy = os.getenv("HTTP_PROXY")
+            https_proxy = os.getenv("HTTPS_PROXY")
+            proxies = {'http':http_proxy,'https': https_proxy if not None else http_proxy}
         url = urlsplit(self.url)
         base_url = f"{url.scheme}://{url.netloc}/"
-        response = requests.get(f"{base_url}api/ows_endpoints/", {}, timeout=30, verify=False)
+        response = requests.get(f"{base_url}api/ows_endpoints/", {}, timeout=30, verify=False, proxies=proxies)
         content = response.content
         status = response.status_code
         content_type = response.headers["Content-Type"]

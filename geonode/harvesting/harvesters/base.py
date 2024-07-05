@@ -22,6 +22,7 @@ import dataclasses
 import html
 import io
 import logging
+import os
 import typing
 from pathlib import Path
 
@@ -331,7 +332,13 @@ def download_resource_file(url: str, target_name: str) -> Path:
 
     """
 
-    response = requests.get(url, stream=True)
+    if os.getenv("HTTP_PROXY") is not None:
+        http_proxy = os.getenv("HTTP_PROXY")
+        https_proxy = os.getenv("HTTPS_PROXY")
+        proxies = {'http':http_proxy,'https': https_proxy if not None else http_proxy}
+        response = requests.get(url, stream=True, proxies=proxies)
+    else:
+        response = requests.get(url, stream=True)
     response.raise_for_status()
     file_size = response.headers.get("Content-Length")
     content_type = response.headers.get("Content-Type")
