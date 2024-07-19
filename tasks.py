@@ -589,11 +589,12 @@ def _prepare_oauth_fixture():
 
 def _prepare_site_fixture():
     upurl = urlparse(os.environ["SITEURL"])
+    name = os.getenv("SITENAME", upurl)
     default_fixture = [
         {
             "model": "sites.site",
             "pk": 1,
-            "fields": {"domain": str(upurl.hostname), "name": str(upurl.hostname)},
+            "fields": {"domain": str(upurl.hostname), "name": name},
         }
     ]
     with open("/tmp/default_site.json", "w") as fixturefile:
