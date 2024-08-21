@@ -282,13 +282,17 @@ class GeoNodeServiceHandler(WmsServiceHandler):
 
     def ows_endpoint(self):
         proxies = {}
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            proxies = {'http':http_proxy,'https': https_proxy if not None else http_proxy}
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         url = urlsplit(self.url)
         base_url = f"{url.scheme}://{url.netloc}/"
-        response = requests.get(f"{base_url}api/ows_endpoints/", {}, timeout=30, verify=False, proxies=proxies)
+        response = requests.get(f"{base_url}api/ows_endpoints/", {}, timeout=30, verify=self.verify_certificate, proxies=proxies)
         content = response.content
         status = response.status_code
         content_type = response.headers["Content-Type"]

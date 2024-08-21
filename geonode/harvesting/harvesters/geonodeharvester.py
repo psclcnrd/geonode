@@ -115,10 +115,14 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
         super().__init__(*args, **kwargs)
         self.remote_url = self.remote_url.rstrip("/")
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self.harvest_documents = bool(harvest_documents)
         self.harvest_datasets = bool(harvest_datasets)
         self.copy_datasets = bool(copy_datasets)
@@ -147,7 +151,7 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
 
     def get_num_available_resources(self) -> int:
         url = f"{self.base_api_url}/resources/"
-        response = self.http_session.get(url, params=self._get_resource_list_params(), verify=False)
+        response = self.http_session.get(url, params=self._get_resource_list_params(), verify=self.verify_certificate)
         result = 0
         if response.status_code == requests.codes.ok:
             try:
@@ -161,7 +165,7 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
 
     def list_resources(self, offset: typing.Optional[int] = 0) -> typing.List[base.BriefRemoteResource]:
         url = f"{self.base_api_url}/resources/"
-        response = self.http_session.get(url, params=self._get_resource_list_params(offset), verify=False)
+        response = self.http_session.get(url, params=self._get_resource_list_params(offset), verify=self.verify_certificate)
         result = []
         if response.status_code == requests.codes.ok:
             try:
@@ -187,7 +191,7 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
         return result
 
     def check_availability(self, timeout_seconds: typing.Optional[int] = 5) -> bool:
-        return _check_availability(self.http_session, f"{self.base_api_url}/datasets", "datasets", timeout_seconds)
+        return _check_availability(self.http_session, f"{self.base_api_url}/datasets", "datasets", timeout_seconds, self.verify_certificate)
 
     def get_geonode_resource_type(self, remote_resource_type: str) -> typing.Type[typing.Union[Dataset, Document]]:
         return {GeoNodeResourceTypeCurrent.DATASET.value: Dataset, GeoNodeResourceTypeCurrent.DOCUMENT.value: Document}[
@@ -203,7 +207,7 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
             GeoNodeResourceTypeCurrent.DOCUMENT.value: "/documents/",
         }[harvestable_resource.remote_resource_type]
         url = f"{self.base_api_url}{url_fragment}{harvestable_resource.unique_identifier}/"
-        response = self.http_session.get(url, verify=False)
+        response = self.http_session.get(url, verify=self.verify_certificate)
         result = None
         if response.status_code == requests.codes.ok:
             try:
@@ -489,10 +493,14 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
         super().__init__(*args, **kwargs)
         self.remote_url = self.remote_url.rstrip("/")
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self.harvest_documents = harvest_documents if harvest_documents is not None else True
         self.harvest_datasets = harvest_datasets if harvest_datasets is not None else True
         self.copy_datasets = copy_datasets
@@ -564,7 +572,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
 
     def check_availability(self, timeout_seconds: typing.Optional[int] = 5) -> bool:
         """Check whether the remote GeoNode is online."""
-        return _check_availability(self.http_session, f"{self.base_api_url}/", "layers", timeout_seconds)
+        return _check_availability(self.http_session, f"{self.base_api_url}/", "layers", timeout_seconds, self.verify_certificate)
 
     def get_geonode_resource_type(self, remote_resource_type: str) -> typing.Type[typing.Union[Dataset, Document, Map]]:
         """Return resource type class from resource type string."""
@@ -586,7 +594,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
             Map: f"/maps/{resource_unique_identifier}/",
         }[local_resource_type]
         url = f"{self.base_api_url}{endpoint_suffix}"
-        response = self.http_session.get(url, verify=False)
+        response = self.http_session.get(url, verify=self.verify_certificate)
         result = None
         if response.status_code == requests.codes.ok:
             api_record = response.json()
@@ -684,7 +692,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
     ) -> typing.List[base.BriefRemoteResource]:
         response = self.http_session.get(
             f"{self.base_api_url}/{resource_type.value}/", params=self._get_resource_list_params(offset),
-            verify=False
+            verify=self.verify_certificate
         )
         response.raise_for_status()
         result = []
@@ -720,7 +728,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
                 "elementsetname": "full",
                 "outputschema": "http://www.isotc211.org/2005/gmd",
             },
-            verify=False
+            verify=self.verify_certificate
         )
         if get_record_by_id_response.status_code == requests.codes.ok:
             xml_root = etree.fromstring(get_record_by_id_response.content, parser=XML_PARSER)
@@ -768,7 +776,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
         resource_type: GeoNodeResourceType,
     ) -> int:
         url = f"{self.base_api_url}/{resource_type.value}/"
-        response = self.http_session.get(url, params=self._get_resource_list_params(), verify=False)
+        response = self.http_session.get(url, params=self._get_resource_list_params(), verify=self.verify_certificate)
         result = 0
         if response.status_code != requests.codes.ok:
             logger.error(f"Got back invalid response from {url!r}")
@@ -951,7 +959,7 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
             # the document list endpoint
             document_list_response = self.http_session.get(
                 f"{self.base_api_url}/documents/", params={"id": harvestable_resource.unique_identifier},
-                verify=False
+                verify=self.verify_certificate
             )
             if document_list_response.status_code == requests.codes.ok:
                 raw_response = document_list_response.json()
@@ -1009,10 +1017,14 @@ class GeonodeUnifiedHarvesterWorker(base.BaseHarvesterWorker):
         super().__init__(*args, **kwargs)
         self.remote_url = self.remote_url.rstrip("/")
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self.harvest_documents = bool(harvest_documents)
         self.harvest_datasets = bool(harvest_datasets)
         self.copy_datasets = bool(copy_datasets)
@@ -1287,9 +1299,10 @@ def _check_availability(
     url: str,
     payload_key_to_check: str,
     timeout_seconds: typing.Optional[int] = 5,
+    verify_certificate: bool = True,
 ) -> bool:
     try:
-        response = http_session.get(url, timeout=timeout_seconds, verify=False)
+        response = http_session.get(url, timeout=timeout_seconds, verify=verify_certificate)
         response.raise_for_status()
     except (requests.HTTPError, requests.ConnectionError):
         result = False

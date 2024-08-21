@@ -119,10 +119,14 @@ class OgcWmsHarvester(base.BaseHarvesterWorker):
         super().__init__(*args, **kwargs)
         self.http_session = requests.Session()
         self.http_session.headers = {"Content-Type": "application/xml"}
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self.dataset_title_filter = dataset_title_filter
 
     @property
@@ -206,7 +210,7 @@ class OgcWmsHarvester(base.BaseHarvesterWorker):
                 params[_param[0]] = _param[1]
 
         get_capabilities_response = self.http_session.get(
-            self.get_ogc_wms_url(wms_url, version=_version), params=params, verify=False
+            self.get_ogc_wms_url(wms_url, version=_version), params=params, verify=self.verify_certificate
         )
         get_capabilities_response.raise_for_status()
         return get_capabilities_response

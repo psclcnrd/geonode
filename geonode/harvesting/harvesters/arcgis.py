@@ -139,10 +139,14 @@ class ArcgisMapServiceResourceExtractor(ArcgisServiceResourceExtractor):
     def __init__(self, service: arcrest.MapService):
         super().__init__(service)
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self._cached_resources = None
 
     def get_num_resources(self) -> int:
@@ -158,7 +162,7 @@ class ArcgisMapServiceResourceExtractor(ArcgisServiceResourceExtractor):
         return self._cached_resources
 
     def get_resource(self, harvestable_resource: models.HarvestableResource):
-        response = self.http_session.get(harvestable_resource.unique_identifier, params={"f": "json"}, verify=False)
+        response = self.http_session.get(harvestable_resource.unique_identifier, params={"f": "json"}, verify=self.verify_certificate)
         result = None
         if response.status_code == requests.codes.ok:
             try:
@@ -259,10 +263,14 @@ class ArcgisImageServiceResourceExtractor(ArcgisServiceResourceExtractor):
     def __init__(self, service: arcrest.ImageService):
         super().__init__(service)
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
 
     def get_num_resources(self) -> int:
         return len(self.list_resources())
@@ -283,7 +291,7 @@ class ArcgisImageServiceResourceExtractor(ArcgisServiceResourceExtractor):
         return result
 
     def get_resource(self, harvestable_resource: models.HarvestableResource) -> base.HarvestedResourceInfo:
-        response = self.http_session.get(harvestable_resource.unique_identifier, params={"f": "json"}, verfy=False)
+        response = self.http_session.get(harvestable_resource.unique_identifier, params={"f": "json"}, verify=self.verify_certificate)
         result = None
         if response.status_code == requests.codes.ok:
             try:
@@ -401,10 +409,14 @@ class ArcgisHarvesterWorker(base.BaseHarvesterWorker):
             harvest_images = harvest_image_services
         super().__init__(catalog_url, harvester_id)
         self.http_session = requests.Session()
-        if os.getenv("HTTP_PROXY") is not None:
-            http_proxy = os.getenv("HTTP_PROXY")
-            https_proxy = os.getenv("HTTPS_PROXY")
-            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy if not None else http_proxy})
+        if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+            http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+            https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+            self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
+        if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        else:
+            self.verify_certificate = True
         self.harvest_map_services = harvest_maps
         self.harvest_image_services = harvest_images
         self.resource_name_filter = resource_name_filter

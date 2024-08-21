@@ -331,14 +331,17 @@ def download_resource_file(url: str, target_name: str) -> Path:
     to save it in the appropriate location.
 
     """
-
-    if os.getenv("HTTP_PROXY") is not None:
-        http_proxy = os.getenv("HTTP_PROXY")
-        https_proxy = os.getenv("HTTPS_PROXY")
-        proxies = {'http':http_proxy,'https': https_proxy if not None else http_proxy}
-        response = requests.get(url, stream=True, proxies=proxies)
+    if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
+        verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
     else:
-        response = requests.get(url, stream=True)
+        verify_certificate = True
+    if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
+        http_proxy = os.getenv("ENTERPRISE_HTTP_PROXY")
+        https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
+        proxies = {'http':http_proxy,'https': https_proxy}
+        response = requests.get(url, stream=True, proxies=proxies, verify=verify_certificate)
+    else:
+        response = requests.get(url, stream=True, verify=verify_certificate)
     response.raise_for_status()
     file_size = response.headers.get("Content-Length")
     content_type = response.headers.get("Content-Type")
