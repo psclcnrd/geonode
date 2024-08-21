@@ -287,7 +287,7 @@ class GeoNodeServiceHandler(WmsServiceHandler):
             https_proxy = os.getenv("ENTERPRISE_HTTPS_PROXY", http_proxy)
             self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
         if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
-            self.verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+            self.verify_certificate = True if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS").lower()=='true' else False
         else:
             self.verify_certificate = True
         url = urlsplit(self.url)
