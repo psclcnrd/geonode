@@ -31,6 +31,11 @@ RUN chmod +x /usr/bin/celery-cmd
 RUN yes w | pip install --src /usr/src -r requirements.txt &&\
     yes w | pip install -e .
 
+# Disable certificate verification:
+# TODO: update the arcrest library and delete this line
+RUN sed -i '14 i import ssl' /usr/local/lib/python3.10/dist-packages/arcrest/server.py
+RUN sed -i '249 i \            ssl._create_default_https_context = ssl._create_unverified_context' /usr/local/lib/python3.10/dist-packages/arcrest/server.py
+
 # Cleanup apt update lists
 RUN apt-get autoremove --purge &&\
     apt-get clean &&\
