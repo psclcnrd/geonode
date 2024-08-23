@@ -121,6 +121,8 @@ class GeonodeCurrentHarvester(base.BaseHarvesterWorker):
             self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
         if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
             self.verify_certificate = True if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS").lower()=='true' else False
+            if not self.verify_certificate:
+                logger.warning("Certificate verification is disable.")
         else:
             self.verify_certificate = True
         self.harvest_documents = bool(harvest_documents)
@@ -499,6 +501,8 @@ class GeonodeLegacyHarvester(base.BaseHarvesterWorker):
             self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
         if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
             self.verify_certificate = True if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS").lower()=='true' else False
+            if not self.verify_certificate:
+                logger.warning("Certificate verification is disable.")
         else:
             self.verify_certificate = True
         self.harvest_documents = harvest_documents if harvest_documents is not None else True
@@ -1023,6 +1027,8 @@ class GeonodeUnifiedHarvesterWorker(base.BaseHarvesterWorker):
             self.http_session.proxies.update({'http':http_proxy,'https': https_proxy})
         if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
             self.verify_certificate = True if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS").lower()=='true' else False
+            if not self.verify_certificate:
+                logger.warning("Certificate verification is disable.")
         else:
             self.verify_certificate = True
         self.harvest_documents = bool(harvest_documents)

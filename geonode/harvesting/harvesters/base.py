@@ -332,7 +332,9 @@ def download_resource_file(url: str, target_name: str) -> Path:
 
     """
     if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS") is not None:
-        verify_certificate = os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS")
+        verify_certificate = True if os.getenv("VERIFY_CERTIFICATE_FOR_REQUESTS").lower()=='true' else False
+        if not verify_certificate:
+            logger.warning("Certificate verification is disable.")
     else:
         verify_certificate = True
     if os.getenv("ENTERPRISE_HTTP_PROXY") is not None:
